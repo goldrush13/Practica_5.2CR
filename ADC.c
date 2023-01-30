@@ -7,10 +7,11 @@
  *
  */
 
+
 // MODULO 0 ADC
-// A1N0 PE3 canal 0
-// A1N1 PE2 canal 1 
-// A1N2 PE1 canal 2
+// A1N0 PE3 canal 0 SS0
+// A1N1 PE2 canal 1 SS1
+// A1N2 PE1 canal 2 SS2
 
 // SS3 - 1
 // SS2 - 4
@@ -63,14 +64,45 @@ extern void Configura_Reg_ADC0(void)
     //ADC0->SSMUX1 = (2<<0) | (1<<0) | (0<<0); //en el secuenciador 1 se asignar el canal 0 1 y 2
 
 
+    // Pag 1130 BIT de control de muestreo + interrupción
+    ADC0->SSCTL0 = (1<<2) | (1<<1);
+    ADC0->SSCTL1 = (1<<2) | (1<<1);
+    ADC0->SSCTL2 = (1<<2) | (1<<1);
+    
+    // Pag 1082
+    ADC0->IM |= (1<<0) | (1<<1) | (1<<2);
 
-    //pag 1130 Este registro (ADCSSCTL2), configura el bit de control de muestreo y la interrupción
-
+    // Pag 1077 activación secuenciadores
+    ADC0->ACTSS = (1<<2) | (1<<1) | (1<<0) | (0<<3); //duda, porque no utilice el 3
+    
+    ADC0->PSSI |= (1<<2) | (1<<1) | (1<<0);
 }
 
 extern void ADC0_InSeq2(uint16_t *Result,uint16_t *duty)
 {
+    // Habilitamos
+    ADC0->PSSI |= (1<<0) | (1<<1) | (1<<2);
+      
+    // Wait for converter
+    while((ADC0->RIS&0x04)==0) // no olvidar la igualación
+    {
+
+    };  
+
+   /////////// SECUENCIADORES ///////////////
+    // SS0
+    Result[0] = ADC0->SSFIFO0&0xFFF;
+    duty[0] = (Result[0]*50000)/4096;
     
+    // SS1
+    Result[1] = ADC0->SSFIFO1&0xFFF;
+    duty[1] = (Result[1]*50000)/4096;
+
+    // SS2
+    Result[2] = ADC0->SSFIFO2&0xFFF;
+    duty[2] = (Result[2]*50000)/4096;
+    
+    ADC0->ISC = (1<<0) | (1<<1) | (1<<2); // ACTIVO
 
 }
 
